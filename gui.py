@@ -19,6 +19,8 @@ from Layouts.dataBasicInfo import DatasetBasicInfo
 from Layouts.hist import Histograme
 from Layouts.matcorr import Matrice
 from Layouts.scatter import Scatter
+from Layouts.tree import Tree
+from decision_tree_mine import DecisionTreeMine
 
 
 class MyApp(QWidget):
@@ -45,6 +47,11 @@ class MyApp(QWidget):
         self.button.clicked.connect(self.loadExcelData)
         layout2.addWidget(self.button)
         self.setLayout(layout)
+
+        self.show_tree_button = QPushButton('Show Tree')
+        self.show_tree_button.clicked.connect(self.show_tree)
+        layout2.addWidget(self.show_tree_button)
+
 
         self.basic_infoB = QPushButton('&Basic Info')
         self.basic_infoB.clicked.connect(self.showDataBsicInfo)
@@ -116,6 +123,9 @@ class MyApp(QWidget):
         self.table.removeRow(row)
 
 
+    def show_tree(self):
+        self.w8 = Tree(self.node, self.data.columns)
+        self.w8.showMaximized()
 
 
 
@@ -161,27 +171,39 @@ class MyApp(QWidget):
 
     def showAttributeInfo(self):
         self.w2 = AttributeBasicInfo(self)
-        self.w2.show()
+        self.w2.showMaximized()
 
     def showAttributeInfo2(self):
         self.w2 = AttributeInfo2(self)
-        self.w2.show()
-
+        self.w2.showMaximized()
     def showDataBsicInfo(self):
         self.w = DatasetBasicInfo(self)
-        self.w.show()
+        self.w.showMaximized()
 
     def loadExcelData(self):
         filename, _ = QFileDialog.getOpenFileName(self, 'Open File', '', ".xlsx(*.xlsx)")
         if filename is None:
             return
-        df = pd.read_excel(filename, worksheet_name)
+        df = pd.read_excel(filename)
         self.data = df
         self.list = df.values.tolist()
         if df.size == 0:
             return
+        attr = [i for i in range(len(df.columns))]
+        label_index = 4
+        attr.remove(label_index)
+        dt = DecisionTreeMine(self.list, attr, label_index, self)
+        self.node = dt.generate_tree(self.list, attr)
 
         df.fillna('', inplace=True)
+        df.columns = df.columns.str.strip()
+        # df2 = df.groupby("Watcher").agg(list)
+        # df2 = df['videoCategoryLabel'].groupby(df['Watcher'])
+        # print(df2)
+        # for name, group in df.groupby(df['Watcher']):
+        #     print(name)
+        #     print(group)
+        #     print('\n')
         self.table.setRowCount(df.shape[0])
         self.table.setColumnCount(df.shape[1])
         self.table.setHorizontalHeaderLabels(df.columns)
@@ -354,7 +376,7 @@ class MyApp(QWidget):
             if i in f.keys():
                 f[i] += 1
             else:
-                f[i] = 0
+                f[i] = 1
 
         return f
 
@@ -443,7 +465,7 @@ if __name__ == '__main__':
     # QGuiApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
 
     excel_file_path = 'i.xlsx'
-    worksheet_name = 'HR Employee Attrition'
+    worksheet_name = 'Trending videos on youtube data'
 
     app = QApplication(sys.argv)
     app.setStyleSheet('''
